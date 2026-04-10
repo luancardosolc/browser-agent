@@ -4,8 +4,8 @@ export default defineConfig({
   extensionApi: 'chrome',
   modules: ['@wxt-dev/module-react'],
   manifest: {
-    name: 'Job Tracker — Browser Automation Agent',
-    description: 'Browser automation runtime for job application workflows',
+    name: 'Browser Agent',
+    description: 'Generic browser automation runtime — configurable backend, plugin system, form intelligence.',
     version: '0.1.0',
     permissions: [
       'activeTab',
@@ -13,10 +13,10 @@ export default defineConfig({
       'scripting',
       'tabs',
       'notifications',
+      'contextMenus',
     ],
     host_permissions: [
-      'http://localhost:3001/*',
-      'https://www.linkedin.com/*',
+      'http://localhost/*',
       'https://*/*',
     ],
   },

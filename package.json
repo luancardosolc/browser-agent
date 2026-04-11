@@ -1,7 +1,7 @@
 {
-  "name": "job-tracker-extension",
+  "name": "browser-agent",
   "version": "0.1.0",
-  "description": "Browser Automation Agent Runtime for Job Tracker",
+  "description": "Generic browser automation runtime — Chrome Extension (WXT + TypeScript)",
   "scripts": {
     "dev": "wxt",
     "build": "wxt build",
@@ -13,7 +13,12 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "wxt": "^0.19.0",
+    "wxt": "^0.19.29",
+    "@vitejs/plugin-react": "^4.3.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
     "typescript": "^5.4.0",
     "vitest": "^1.6.0",
     "@types/chrome": "^0.0.268"

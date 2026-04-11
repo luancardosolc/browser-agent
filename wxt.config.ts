@@ -1,8 +1,10 @@
 import { defineConfig } from 'wxt';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   extensionApi: 'chrome',
-  modules: ['@wxt-dev/module-react'],
+  srcDir: 'src',
+  vite: () => ({ plugins: [react()] }),
   manifest: {
     name: 'Browser Agent',
     description: 'Generic browser automation runtime — configurable backend, plugin system, form intelligence.',

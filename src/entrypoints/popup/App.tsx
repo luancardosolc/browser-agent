@@ -113,7 +113,7 @@ export function PopupApp() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
               <button onClick={() => runCommand('autofill_form')} disabled={status === 'loading'} style={btnStyle}>Autofill Form</button>
               <button onClick={() => runCommand('extract_data')} disabled={status === 'loading'} style={btnStyle}>Extract Data</button>
-              <button onClick={loadContext} style={{ ...btnStyle, color: '#6b7280', fontSize: 12 }}>Refresh Context</button>
+              <button onClick={loadContext} style={btnStyle}>↺ Refresh Context</button>
             </div>
             {status !== 'idle' && (
               <div style={{

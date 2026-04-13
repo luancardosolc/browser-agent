@@ -65,7 +65,8 @@ export type CommandIntent =
   | 'click'
   | 'navigate'
   | 'get_context'
-  | 'resume_apply';
+  | 'resume_apply'
+  | 'send_snapshot';
 
 export interface Command {
   id: string;
@@ -79,6 +80,38 @@ export interface CommandResult {
   status: 'success' | 'error' | 'pending';
   data?: Record<string, unknown>;
   error?: string;
+}
+
+// ─── Extension-driven Apply Session ─────────────────────────────────────────
+
+/** DetectedField serializado (sem referência ao HTMLElement) para envio à API. */
+export interface SnapshotField {
+  label: string;
+  fieldType: FieldType;
+  required: boolean;
+  options?: string[];
+  currentValue?: string;
+  validationError?: string;
+}
+
+/** Snapshot completo do DOM enviado pela extensão para a API a cada ciclo. */
+export interface DomSnapshot {
+  jobId: string;
+  sessionToken: string;
+  url: string;
+  pageType: PageType;
+  title: string;
+  fields: SnapshotField[];
+  buttons: { label: string; selector: string }[];
+  errors: string[];
+  timestamp: number;
+}
+
+/** Estado local da sessão de apply na extensão. */
+export interface ApplySession {
+  jobId: string;
+  sessionToken: string;
+  status: 'idle' | 'running' | 'paused' | 'done';
 }
 
 // ─── Backend Memory ──────────────────────────────────────────────────────────

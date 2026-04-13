@@ -1,4 +1,4 @@
-import type { Command, CommandResult, KnowledgeEntry, PendingQuestion } from '@/types';
+import type { Command, CommandResult, DomSnapshot, KnowledgeEntry, PendingQuestion } from '@/types';
 import { getConfig } from './config';
 
 class BackendClient {
@@ -49,6 +49,33 @@ class BackendClient {
       return true;
     } catch {
       return false;
+    }
+  }
+
+  /**
+   * Polling: verifica se a API tem um próximo comando para esta sessão.
+   * Retorna null quando não há comando pendente ou em caso de erro de rede.
+   */
+  async pollCommand(sessionToken: string): Promise<Command | null> {
+    try {
+      return await this.request<Command | null>(`/automation/poll/${sessionToken}`);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Envia um snapshot do DOM para a API processar com LLM.
+   * Retorna a lista de comandos que a extensão deve executar.
+   */
+  async submitSnapshot(snapshot: DomSnapshot): Promise<Command[]> {
+    try {
+      return await this.request<Command[]>('/automation/snapshot', {
+        method: 'POST',
+        body: JSON.stringify(snapshot),
+      });
+    } catch {
+      return [];
     }
   }
 }

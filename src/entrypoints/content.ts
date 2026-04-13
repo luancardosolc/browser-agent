@@ -3,6 +3,7 @@ import { engine } from '@/core/engine';
 import { formAutofillPlugin } from '@/plugins/form-autofill';
 import { jobApplyHelperPlugin } from '@/plugins/job-apply-helper';
 import { scraperBasicPlugin } from '@/plugins/scraper-basic';
+import { applySessionPlugin } from '@/plugins/apply-session';
 import type { ExtensionMessage } from '@/types';
 
 export default defineContentScript({
@@ -14,6 +15,7 @@ export default defineContentScript({
     engine.registry.register(formAutofillPlugin);
     engine.registry.register(jobApplyHelperPlugin);
     engine.registry.register(scraperBasicPlugin);
+    engine.registry.register(applySessionPlugin);
 
     // Listen for commands from background / popup
     chrome.runtime.onMessage.addListener(

@@ -4,7 +4,7 @@ import { formAutofillPlugin } from '@/plugins/form-autofill';
 import { jobApplyHelperPlugin } from '@/plugins/job-apply-helper';
 import { scraperBasicPlugin } from '@/plugins/scraper-basic';
 import { applySessionPlugin } from '@/plugins/apply-session';
-import type { ExtensionMessage } from '@/types';
+import type { ApplyQueueItem, ExtensionMessage } from '@/types';
 
 export default defineContentScript({
   matches: ['<all_urls>'],
@@ -26,6 +26,40 @@ export default defineContentScript({
         return true; // Keep channel open for async response
       },
     );
+
+    window.addEventListener('message', event => {
+      if (event.source !== window || !event.data || typeof event.data !== 'object') return;
+
+      if (event.data.type === 'JOB_TRACKER_START_APPLY_SESSION') {
+        const { jobId, sessionToken, url } = event.data as {
+          jobId?: string;
+          sessionToken?: string;
+          url?: string;
+        };
+
+        if (!jobId || !sessionToken || !url) return;
+
+        void chrome.runtime.sendMessage({
+          type: 'START_APPLY_SESSION',
+          jobId,
+          sessionToken,
+          url,
+        } satisfies ExtensionMessage);
+        return;
+      }
+
+      if (event.data.type === 'JOB_TRACKER_START_APPLY_QUEUE') {
+        const sessions = (event.data.sessions ?? []) as ApplyQueueItem[];
+        if (!Array.isArray(sessions) || sessions.length === 0) return;
+
+        void chrome.runtime.sendMessage({
+          type: 'START_APPLY_QUEUE',
+          sessions,
+        } satisfies ExtensionMessage);
+      }
+    });
+
+    void chrome.runtime.sendMessage({ type: 'CONTENT_SCRIPT_READY' } satisfies ExtensionMessage);
 
     console.log('[JobTracker Extension] Content script loaded', window.location.href);
   },

@@ -35,12 +35,19 @@ export class CoreEngine {
           };
 
         case 'click': {
-          const selector = command.data.selector as string;
-          const ok = await clickElement(selector);
+          const clickResult = await clickElement({
+            selector: command.data.selector as string | undefined,
+            fallbackSelectors: Array.isArray(command.data.fallbackSelectors)
+              ? (command.data.fallbackSelectors as string[])
+              : [],
+            buttonText: command.data.buttonText as string | undefined,
+            timeoutMs: typeof command.data.timeoutMs === 'number' ? (command.data.timeoutMs as number) : undefined,
+          });
           return {
             commandId: command.id,
-            status: ok ? 'success' : 'error',
-            error: ok ? undefined : `Element not found: ${selector}`,
+            status: clickResult.ok ? 'success' : 'error',
+            data: clickResult.ok ? { tried: clickResult.debug } : { tried: clickResult.debug },
+            error: clickResult.ok ? undefined : clickResult.reason,
           };
         }
 
@@ -50,15 +57,16 @@ export class CoreEngine {
         }
 
         case 'autofill_form':
+          return this.reportPluginResults(
+            command.id,
+            await this.registry.executeByName('form_autofill', ctx, command.data),
+          );
+
         case 'resume_apply': {
-          const results = await this.registry.executeAll(ctx, command.data);
-          const hasError = results.some(r => r.status === 'error');
-          const hasPending = results.some(r => r.status === 'pending');
-          return {
-            commandId: command.id,
-            status: hasPending ? 'pending' : hasError ? 'error' : 'success',
-            data: { pluginResults: results },
-          };
+          return this.reportPluginResults(
+            command.id,
+            await this.registry.executeAll(ctx, command.data),
+          );
         }
 
         default:
@@ -84,6 +92,16 @@ export class CoreEngine {
       intent: 'autofill_form',
       data: result as unknown as Record<string, unknown>,
     });
+  }
+
+  private reportPluginResults(commandId: string, results: PluginResult[]): CommandResult {
+    const hasError = results.some(r => r.status === 'error');
+    const hasPending = results.some(r => r.status === 'pending');
+    return {
+      commandId,
+      status: hasPending ? 'pending' : hasError ? 'error' : 'success',
+      data: { pluginResults: results },
+    };
   }
 }
 

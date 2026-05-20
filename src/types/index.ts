@@ -6,8 +6,14 @@ export type PageType =
   | 'greenhouse'
   | 'workday'
   | 'lever'
+  | 'indeed'
+  | 'glassdoor'
   | 'form'
   | 'generic';
+
+export const EXTERNAL_FORM_PAGE_TYPES: PageType[] = [
+  'greenhouse', 'workday', 'lever', 'indeed', 'glassdoor', 'form', 'generic',
+];
 
 export interface PageContext {
   url: string;
@@ -50,6 +56,7 @@ export interface DetectedField {
   options?: string[];       // for select/radio/checkbox
   currentValue?: string;
   validationError?: string;
+  groupName?: string;
 }
 
 export interface FillInstruction {
@@ -102,8 +109,9 @@ export interface DomSnapshot {
   pageType: PageType;
   title: string;
   fields: SnapshotField[];
-  buttons: { label: string; selector: string }[];
+  buttons: { label: string; selector: string; role?: 'start' | 'next' | 'review' | 'submit' | 'upload' | 'other' }[];
   errors: string[];
+  metadata: Record<string, unknown>;
   timestamp: number;
 }
 
@@ -112,6 +120,12 @@ export interface ApplySession {
   jobId: string;
   sessionToken: string;
   status: 'idle' | 'running' | 'paused' | 'done';
+}
+
+export interface ApplyQueueItem {
+  jobId: string;
+  sessionToken: string;
+  url: string;
 }
 
 // ─── Backend Memory ──────────────────────────────────────────────────────────
@@ -127,5 +141,9 @@ export interface KnowledgeEntry {
 export type ExtensionMessage =
   | { type: 'GET_CONTEXT' }
   | { type: 'EXECUTE_COMMAND'; command: Command }
+  | { type: 'START_APPLY_SESSION'; jobId: string; sessionToken: string; url: string }
+  | { type: 'START_APPLY_QUEUE'; sessions: ApplyQueueItem[] }
+  | { type: 'CONTENT_SCRIPT_READY' }
+  | { type: 'QUEUE_PROGRESS'; status: 'next_job' | 'queue_finished'; detail?: string }
   | { type: 'PENDING_QUESTION'; question: PendingQuestion; jobId?: string }
-  | { type: 'STATUS_UPDATE'; status: string; detail?: string };
+  | { type: 'STATUS_UPDATE'; status: string; jobId?: string; sessionToken?: string; detail?: string };

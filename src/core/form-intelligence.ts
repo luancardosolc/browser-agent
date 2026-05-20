@@ -28,7 +28,15 @@ function mapElementType(el: HTMLElement): FieldType {
   return 'text';
 }
 
+type QueryRoot = Document | Element | ShadowRoot;
+
+function getQueryRoot(el: HTMLElement): QueryRoot {
+  const root = el.getRootNode();
+  return root instanceof ShadowRoot || root instanceof Document ? root : document;
+}
+
 function getLabel(el: HTMLElement): string {
+  const root = getQueryRoot(el);
   // 1. aria-label
   const ariaLabel = el.getAttribute('aria-label');
   if (ariaLabel) return ariaLabel.trim();
@@ -36,7 +44,7 @@ function getLabel(el: HTMLElement): string {
   // 2. associated <label>
   const id = el.id;
   if (id) {
-    const label = document.querySelector<HTMLLabelElement>(`label[for="${id}"]`);
+    const label = root.querySelector<HTMLLabelElement>(`label[for="${id}"]`);
     if (label) {
       // Use aria-hidden span if available (avoids duplicate visually-hidden text)
       const ariaHidden = label.querySelector('[aria-hidden="true"]');
@@ -62,6 +70,53 @@ function getLabel(el: HTMLElement): string {
   return (el as HTMLInputElement).placeholder ?? el.getAttribute('name') ?? '';
 }
 
+function getRadioGroupLabel(el: HTMLInputElement): string {
+  const root = getQueryRoot(el);
+  const fieldset = el.closest('fieldset');
+  if (fieldset) {
+    const legend = fieldset.querySelector('legend');
+    if (legend) {
+      const ariaHidden = legend.querySelector('[aria-hidden="true"]');
+      const text = (ariaHidden ?? legend).textContent?.trim();
+      if (text) return text;
+    }
+  }
+
+  const formElement = el.closest('[id*="radio-button-form-component-formElement"], [id*="easyApplyFormElement"]');
+  if (formElement) {
+    const legend = formElement.querySelector('legend');
+    if (legend?.textContent?.trim()) return legend.textContent.trim();
+
+    const title = formElement.querySelector(
+      '.fb-dash-form-element__label-title--is-required, .fb-dash-form-element__label-title, [data-test-form-element-label]',
+    );
+    if (title?.textContent?.trim()) return title.textContent.trim();
+  }
+
+  const name = el.name;
+  if (name) {
+    const first = root.querySelector<HTMLInputElement>(`input[name="${CSS.escape(name)}"]`);
+    if (first && first !== el) {
+      const text = getRadioGroupLabel(first);
+      if (text) return text;
+    }
+  }
+
+  return getLabel(el);
+}
+
+function getRadioGroupValue(el: HTMLInputElement): string {
+  const name = el.name;
+  if (!name) return el.checked ? getLabel(el) || el.value : '';
+
+  const root = getQueryRoot(el);
+  const group = Array.from(root.querySelectorAll<HTMLInputElement>(`input[name="${CSS.escape(name)}"]`));
+  const checked = group.find((candidate) => candidate.checked);
+  if (!checked) return '';
+
+  return getLabel(checked) || checked.value || '';
+}
+
 function getOptions(el: HTMLElement): string[] | undefined {
   if (el instanceof HTMLSelectElement) {
     return Array.from(el.options).map(o => o.text.trim()).filter(Boolean);
@@ -69,8 +124,9 @@ function getOptions(el: HTMLElement): string[] | undefined {
   if (el instanceof HTMLInputElement && (el.type === 'radio' || el.type === 'checkbox')) {
     const name = el.name;
     if (!name) return undefined;
+    const root = getQueryRoot(el);
     const group = Array.from(
-      document.querySelectorAll<HTMLInputElement>(`input[name="${CSS.escape(name)}"]`),
+      root.querySelectorAll<HTMLInputElement>(`input[name="${CSS.escape(name)}"]`),
     );
     return group.map(r => {
       const lbl = getLabel(r);
@@ -80,7 +136,7 @@ function getOptions(el: HTMLElement): string[] | undefined {
   return undefined;
 }
 
-export function detectFields(container: Element | Document = document): DetectedField[] {
+export function detectFields(container: QueryRoot = document): DetectedField[] {
   const inputs = Array.from(
     container.querySelectorAll<HTMLElement>('input:not([type=hidden]), select, textarea'),
   );
@@ -97,13 +153,24 @@ export function detectFields(container: Element | Document = document): Detected
       seen.add(name);
     }
 
+    const label =
+      fieldType === 'radio'
+        ? getRadioGroupLabel(el as HTMLInputElement)
+        : getLabel(el);
+
+    const currentValue =
+      fieldType === 'radio'
+        ? getRadioGroupValue(el as HTMLInputElement)
+        : (el as HTMLInputElement).value;
+
     fields.push({
       element: el,
-      label: getLabel(el),
+      label,
       fieldType,
       required: (el as HTMLInputElement).required ?? el.getAttribute('aria-required') === 'true',
       options: getOptions(el),
-      currentValue: (el as HTMLInputElement).value,
+      currentValue,
+      ...(fieldType === 'radio' ? { groupName: (el as HTMLInputElement).name } : {}),
     });
   }
 
@@ -137,7 +204,7 @@ export function readFieldErrors(el: HTMLElement): string[] {
   return [...new Set(messages)];
 }
 
-export function readFormErrors(container: Element = document.body): string[] {
+export function readFormErrors(container: QueryRoot = document.body): string[] {
   const all: string[] = [];
   for (const selector of ERROR_SELECTORS) {
     container.querySelectorAll(selector).forEach(el => {

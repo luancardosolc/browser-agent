@@ -14,6 +14,10 @@ export class PluginRegistry {
     return this.plugins.filter(p => p.canHandle(context));
   }
 
+  getByName(name: string): Plugin | undefined {
+    return this.plugins.find(p => p.name === name);
+  }
+
   async executeAll(
     context: PageContext,
     data: Record<string, unknown>,
@@ -30,5 +34,29 @@ export class PluginRegistry {
             error: r.reason instanceof Error ? r.reason.message : String(r.reason),
           },
     );
+  }
+
+  async executeByName(
+    name: string,
+    context: PageContext,
+    data: Record<string, unknown>,
+  ): Promise<PluginResult[]> {
+    const plugin = this.getByName(name);
+    if (!plugin) {
+      return [{ status: 'error', error: `Plugin "${name}" not found` }];
+    }
+
+    if (!plugin.canHandle(context)) {
+      return [{ status: 'error', error: `Plugin "${name}" cannot handle page type "${context.pageType}"` }];
+    }
+
+    try {
+      return [await plugin.execute(context, data)];
+    } catch (error) {
+      return [{
+        status: 'error',
+        error: error instanceof Error ? error.message : String(error),
+      }];
+    }
   }
 }

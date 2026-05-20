@@ -16,6 +16,7 @@ export default defineConfig({
       'tabs',
       'notifications',
       'contextMenus',
+      'webNavigation',
     ],
     host_permissions: [
       'http://localhost/*',
